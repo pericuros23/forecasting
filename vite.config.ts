@@ -8,4 +8,7 @@ export default defineConfig({
   // If your repo is "forecasting", keep it as "/forecasting/"
   // If deploying to username.github.io, change to "/"
   base: process.env.NODE_ENV === 'production' ? '/forecasting/' : '/',
-  // Force rebuild
+  build: {
+    sourcemap: false,
+  },
+})
