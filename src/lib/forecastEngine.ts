@@ -1,5 +1,5 @@
 import { daysBetweenExclusive, eachMonthBetween, endOfMonth, formatMonthKey } from "./dateUtils";
-import { getDailyRate, type UnitType } from "./pricing";
+import { getDailyRate, type UnitType, type PricingConfig } from "./pricing";
 
 export type MonthlyBreakdown = {
   month: string; // YYYY-MM
@@ -12,14 +12,15 @@ export function calculateInstallForecast(
   installDate: Date,
   quantity: number,
   unitType: UnitType,
-  forecastEnd: Date
+  forecastEnd: Date,
+  pricingConfig?: PricingConfig
 ): MonthlyBreakdown[] {
   if (forecastEnd <= installDate || quantity <= 0) {
     return [];
   }
 
   const months = eachMonthBetween(installDate, forecastEnd);
-  const dailyRate = getDailyRate(unitType);
+  const dailyRate = getDailyRate(unitType, pricingConfig);
 
   return months
     .map((monthStart) => {

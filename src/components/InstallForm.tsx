@@ -1,11 +1,11 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMemo, useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   type MonthlyBreakdown,
   calculateInstallForecast,
   mergeMonthlyBreakdowns,
 } from "../lib/forecastEngine";
-import { PRICING, type UnitType } from "../lib/pricing";
+import { type UnitType, type PricingConfig, getDailyRate } from "../lib/pricing";
 import { formatCurrency } from "../lib/numberFormat";
 
 type InstallRow = {
@@ -13,10 +13,6 @@ type InstallRow = {
   date: string;
   quantity: number;
   unitType: UnitType;
-};
-
-type Props = {
-  clientName: string;
 };
 
 function createRow(): InstallRow {
@@ -28,8 +24,9 @@ function createRow(): InstallRow {
   };
 }
 
-export function InstallForm({ clientName }: Props) {
+export function InstallForm() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [forecastEnd, setForecastEnd] = useState("");
   const [installCount, setInstallCount] = useState(1);
   const [rows, setRows] = useState<InstallRow[]>([createRow()]);
@@ -37,6 +34,29 @@ export function InstallForm({ clientName }: Props) {
   const [perInstall, setPerInstall] = useState<{ label: string; breakdown: MonthlyBreakdown[] }[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+
+  // Extract pricing config from URL params
+  const clientName = searchParams.get("name") || "Client";
+  const mcn = searchParams.get("mcn") || "";
+  const ffAnnual = parseFloat(searchParams.get("ff") || "0");
+  const ncAnnual = parseFloat(searchParams.get("nc") || "0");
+
+  const pricingConfig: PricingConfig | null = useMemo(() => {
+    if (ffAnnual > 0 && ncAnnual > 0) {
+      return {
+        fullFunctionAnnual: ffAnnual,
+        narrowCoreAnnual: ncAnnual,
+      };
+    }
+    return null;
+  }, [ffAnnual, ncAnnual]);
+
+  // Redirect if no pricing config
+  useEffect(() => {
+    if (!pricingConfig) {
+      navigate("/", { replace: true });
+    }
+  }, [pricingConfig, navigate]);
 
   const totalRevenue = useMemo(
     () => monthly.reduce((sum, row) => sum + row.total, 0),
@@ -95,7 +115,8 @@ export function InstallForm({ clientName }: Props) {
         installDate,
         row.quantity,
         row.unitType,
-        endDate
+        endDate,
+        pricingConfig || undefined
       );
       if (breakdown.length === 0) continue;
       allBreakdowns.push(...breakdown);
@@ -140,10 +161,18 @@ export function InstallForm({ clientName }: Props) {
       </header>
 
       <div className="panel">
-        <button className="text-button" onClick={() => navigate(-1)}>
+        <button className="text-button" onClick={() => navigate("/")}>
           ← Back
         </button>
         <h1>{clientName} installs</h1>
+        {pricingConfig && (
+          <div className="pricing-info">
+            <div className="muted">
+              Full Function: ${pricingConfig.fullFunctionAnnual.toFixed(2)}/year | 
+              Narrow Core: ${pricingConfig.narrowCoreAnnual.toFixed(2)}/year
+            </div>
+          </div>
+        )}
         <div className="input-row">
           <label>
             Number of install events
@@ -228,9 +257,16 @@ export function InstallForm({ clientName }: Props) {
             <div className="muted">Total revenue</div>
             <div className="stat-value">{formatCurrency(totalRevenue)}</div>
           </div>
-          <div className="muted small">
-            Rates: FF {PRICING.FF.daily.toFixed(6)} /day, NC {PRICING.NC.daily.toFixed(6)} /day
-          </div>
+          {pricingConfig && (
+            <div className="muted small">
+              Rates: FF {getDailyRate("FF", pricingConfig).toFixed(6)} /day, NC {getDailyRate("NC", pricingConfig).toFixed(6)} /day
+            </div>
+          )}
+          {mcn && (
+            <div className="muted small">
+              MCN: {mcn}
+            </div>
+          )}
         </div>
         <div className="actions">
           <button onClick={exportCsv} disabled={monthly.length === 0}>

@@ -1,25 +1,27 @@
 export type UnitType = "FF" | "NC";
 
-export const PRICING = {
-  FF: {
-    label: "Full Function",
-    annual: 1092.41,
-    monthly: 1092.41 / 12,
-    daily: 1092.41 / 365,
-  },
-  NC: {
-    label: "Narrow Core",
-    annual: 392.41,
-    monthly: 392.41 / 12,
-    daily: 392.41 / 365,
-  },
-} as const;
+export type PricingConfig = {
+  fullFunctionAnnual: number;
+  narrowCoreAnnual: number;
+};
 
-export function getDailyRate(type: UnitType): number {
-  return PRICING[type].daily;
+// Default pricing (for backwards compatibility)
+export const DEFAULT_PRICING: PricingConfig = {
+  fullFunctionAnnual: 1092.41,
+  narrowCoreAnnual: 392.41,
+};
+
+export function getDailyRate(type: UnitType, config: PricingConfig = DEFAULT_PRICING): number {
+  const annual = type === "FF" ? config.fullFunctionAnnual : config.narrowCoreAnnual;
+  return annual / 365;
 }
 
-export function getMonthlyRate(type: UnitType): number {
-  return PRICING[type].monthly;
+export function getMonthlyRate(type: UnitType, config: PricingConfig = DEFAULT_PRICING): number {
+  const annual = type === "FF" ? config.fullFunctionAnnual : config.narrowCoreAnnual;
+  return annual / 12;
+}
+
+export function getAnnualRate(type: UnitType, config: PricingConfig = DEFAULT_PRICING): number {
+  return type === "FF" ? config.fullFunctionAnnual : config.narrowCoreAnnual;
 }
 
