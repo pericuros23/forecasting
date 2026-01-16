@@ -3,6 +3,7 @@ import ClientPricingInput from "./components/ClientPricingInput";
 import InstallForm from "./components/InstallForm";
 import "./App.css";
 
+// SCO Forecasting Tool
 function App() {
   return (
     <div className="app">
